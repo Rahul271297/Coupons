@@ -81,41 +81,55 @@ const createCoupons = async function (req,res){
 
 }
 
-// const listCoupons = async function (req, res) {
+ const listCoupons = async function (req, res) {
+     try{
+        let sol = await couponModel.find()
+        return res.status(200).send({status:true,msg:"List",data:sol})
 
-// }
+     }catch(err){
+        return res.status(500).send({status:false,Message:err.message})
 
+     }
 
-// const applyCoupon = async function(req,res) {
-
-
-//     const { orderAmount, coupon} = req.body
-//     //Validation code here
-
-//     const couponDetails = await couponModel.findOne({coupon})
-//     if(!couponDetails){
-
-//     }
-//     const {expiryDate, maximumDiscountAmount, minimumOrderAmount, type , discountPercentage} = couponDetails
-
-//     const isCouponValid = Date.now(expiryDate) >  Date.now()
-
-//     if(!isCouponValid) {
-//         //code
-//     }
-
-//     if( type === "PERCENTAGE") {
-//         let discountAmount = (discountPercentage/100)* orderAmount
-
-//         discountAmount =( discountAmount >maximumDiscountAmount) ? maximumDiscountAmount : discountAmount
-//         return res.status(200).send({status: true,  finalAmount: discountAmount})
-//     }
-
-//     const discountedAmount = orderAmount - maximumDiscountAmount
-
-//     return res.status(200).send({})
+ }
 
 
+const applyCoupon = async function(req,res) {
 
-// }
-module.exports={createCoupons}
+    try{
+    const { orderAmount, coupon} = req.body
+    if(!isValid(orderAmount)){
+        return res.status(400).send({status:false,Message:"orderAmount parameter should not be empty"})
+    }
+    if(!isValid(coupon)){
+        return res.status(400).send({status:false,Message:"coupon parameter should not be empty"})
+    }
+   
+    const couponDetails = await couponModel.findOne({coupon})
+    if(!couponDetails){
+        return res.status(400).send({status:false,Message:"coupon is invalid"})
+
+    }
+    const {expiryDate, maximumDiscountAmount, minimumOrderAmount, type , discountPercentage} = couponDetails
+     if(orderAmount<minimumOrderAmount){
+         return res.status(400).send({status:false,Message:"Not applicable for coupon"})
+     }   
+    
+    if( type === "PERCENTAGE") {
+        let discountAmount =orderAmount -((discountPercentage/100)* orderAmount)
+
+        
+        return res.status(200).send({status: true,  finalAmount: discountAmount})
+    }
+
+    const discountedAmount = orderAmount - maximumDiscountAmount
+
+    return res.status(200).send({status:true,data:discountedAmount})
+
+    }
+    catch(err){
+        return res.status(500).send({status:false,Message:err.message})
+    }
+
+}
+module.exports={createCoupons,listCoupons,applyCoupon}
